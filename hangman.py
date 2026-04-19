@@ -1,106 +1,11 @@
 import tkinter as tk
 import random
 
-# Data (UPDATED)
-words = {
-    "Fruits": {
-        "easy": ["apple", "mango", "grape", "lemon", "peach"],
-        "medium": ["banana", "orange", "papaya", "guava", "cherry"],
-        "hard": ["pineapple", "strawberry", "watermelon", "pomegranate", "dragonfruit"]
-    },
+from data import words
+from hangman_art import hangman_stages
+from exceptions import WrongGuessException   
 
-    "Movies": {
-        "easy": ["jaws", "rocky", "coco", "cars", "up"],
-        "medium": ["avatar", "inception", "titanic", "joker", "frozen"],
-        "hard": ["interstellar", "gladiator", "oppenheimer", "parasite", "whiplash"]
-    },
-
-    "Animals": {
-        "easy": ["tiger", "zebra", "panda", "horse", "sheep"],
-        "medium": ["giraffe", "leopard", "dolphin", "kangaroo", "penguin"],
-        "hard": ["chimpanzee", "hippopotamus", "rhinoceros", "crocodile", "orangutan"]
-    },
-
-    "Countries": {
-        "easy": ["india", "china", "nepal", "japan", "egypt"],
-        "medium": ["germany", "brazil", "france", "canada", "italy"],
-        "hard": ["australia", "argentina", "kazakhstan", "switzerland", "madagascar"]
-    },
-
-    "Sports": {
-        "easy": ["golf", "tennis", "cricket", "boxing", "hockey"],
-        "medium": ["football", "badminton", "wrestling", "swimming", "cycling"],
-        "hard": ["gymnastics", "skateboarding", "snowboarding", "triathlon", "weightlifting"]
-    },
-
-    "Tech": {
-        "easy": ["mouse", "keyboard", "screen", "laptop", "router"],
-        "medium": ["python", "android", "server", "monitor", "browser"],
-        "hard": ["algorithm", "database", "encryption", "processor", "virtualization"]
-    }
-}
-
-# Hangman drawing
-hangman_stages = [
-""" 
-  _____
-  |   |
-      |
-      |
-      |
-  ____|
-""",
-"""
-  _____
-  |   |
-  O   |
-      |
-      |
-  ____|
-""",
-"""
-  _____
-  |   |
-  O   |
-  |   |
-      |
-  ____|
-""",
-"""
-  _____
-  |   |
-  O   |
- /|   |
-      |
-  ____|
-""",
-"""
-  _____
-  |   |
-  O   |
- /|\\  |
-      |
-  ____|
-""",
-"""
-  _____
-  |   |
-  O   |
- /|\\  |
- /    |
-  ____|
-""",
-"""
-  _____
-  |   |
-  O   |
- /|\\  |
- / \\  |
-  ____|
-"""
-]
-
-class Hangman:
+class HangmanGame:
     def __init__(self, root):
         self.root = root
         self.root.title("Hangman Game")
@@ -108,7 +13,6 @@ class Hangman:
         self.root.configure(bg="#222831")
 
         self.root.bind("<Key>", self.key_input)
-
         self.main_menu()
 
     def main_menu(self):
@@ -118,27 +22,28 @@ class Hangman:
         frame.place(relx=0.5, rely=0.5, anchor="center")
 
         tk.Label(frame, text="HANGMAN", font=("Arial", 26, "bold"),
-            fg="white", bg="#222831").grid(row=0, column=0, columnspan=3, pady=20)
+                 fg="white", bg="#222831").grid(row=0, column=0, columnspan=3, pady=20)
 
         self.category = tk.StringVar(value="Fruits")
-        tk.Label(frame, text="Category:", fg="white", bg="#222831").grid(row=1, column=0, sticky="w")
+        tk.Label(frame, text="Category:", fg="white", bg="#222831").grid(row=1, column=0)
 
         col = 1
         for cat in words:
             tk.Radiobutton(frame, text=cat, variable=self.category, value=cat,
-                bg="#222831", fg="white", selectcolor="#393e46").grid(row=1, column=col)
+                           bg="#222831", fg="white", selectcolor="#393e46").grid(row=1, column=col)
             col += 1
 
         self.level = tk.StringVar(value="easy")
-        tk.Label(frame, text="Difficulty:", fg="white", bg="#222831").grid(row=2, column=0, sticky="w")
+        tk.Label(frame, text="Difficulty:", fg="white", bg="#222831").grid(row=2, column=0)
 
         col = 1
         for lvl in ["easy", "medium", "hard"]:
             tk.Radiobutton(frame, text=lvl.capitalize(), variable=self.level, value=lvl,
-                bg="#222831", fg="white", selectcolor="#393e46").grid(row=2, column=col)
+                           bg="#222831", fg="white", selectcolor="#393e46").grid(row=2, column=col)
             col += 1
 
-        tk.Button(frame, text="Start Game", bg="#00adb5", fg="white",font=("Arial", 12, "bold"), command=self.start_game)\
+        tk.Button(frame, text="Start Game", bg="#00adb5", fg="white",
+                  font=("Arial", 12, "bold"), command=self.start_game)\
             .grid(row=3, column=0, columnspan=3, pady=20)
 
     def start_game(self):
@@ -148,13 +53,7 @@ class Hangman:
         self.display = ["_"] * len(self.word)
         self.attempts = 0
 
-        # Timer setup
-        if self.level.get() == "easy":
-            self.time_left = 180
-        elif self.level.get() == "medium":
-            self.time_left = 150
-        else:
-            self.time_left = 120
+        self.time_left = 180 if self.level.get() == "easy" else 150 if self.level.get() == "medium" else 120
 
         main_frame = tk.Frame(self.root, bg="#222831")
         main_frame.pack(expand=True)
@@ -162,15 +61,16 @@ class Hangman:
         left = tk.Frame(main_frame, bg="#222831")
         left.grid(row=0, column=0, padx=40)
 
-        self.hangman_label = tk.Label(left, font=("Courier", 16), fg="white", bg="#222831", justify="left")
+        self.hangman_label = tk.Label(left, font=("Courier", 16),
+                                     fg="white", bg="#222831", justify="left")
         self.hangman_label.pack()
 
         right = tk.Frame(main_frame, bg="#222831")
         right.grid(row=0, column=1, padx=40)
 
         self.word_label = tk.Label(right, text=" ".join(self.display),
-            font=("Courier", 28, "bold"),
-            fg="#00fff5", bg="#222831")
+                                   font=("Courier", 28, "bold"),
+                                   fg="#00fff5", bg="#222831")
         self.word_label.pack(pady=20)
 
         self.timer_label = tk.Label(right, text=f"Time: {self.time_left}s",
@@ -192,41 +92,6 @@ class Hangman:
         self.update_hangman()
         self.run_timer()
 
-    def run_timer(self):
-        if self.time_left > 0:
-
-            # 🎨 ADD COLOR LOGIC HERE
-            if self.time_left > 60:
-                color = "#00ff00"   # green
-            elif self.time_left > 20:
-                color = "#ffcc00"   # yellow
-            else:
-                color = "#ff0000"   # red
-
-            self.timer_label.config(text=f"Time: {self.time_left}s", fg=color)
-
-            self.time_left -= 1
-            self.timer_job = self.root.after(1000, self.run_timer)
-        else:
-            self.end("Time's Up! ⏰ Word: " + self.word)
-
-    def key_input(self, event):
-        if event.keysym == "Return":
-            self.start_game()
-            return
-
-        if event.keysym == "Escape":
-            self.main_menu()
-            return
-
-        if hasattr(self, "keyboard"):
-            letter = event.char.upper()
-            if letter.isalpha():
-                for btn in self.keyboard.winfo_children():
-                    if btn["text"] == letter:
-                        btn.invoke()
-                        break
-
     def check(self, letter):
         for btn in self.keyboard.winfo_children():
             if btn["text"] == letter:
@@ -234,14 +99,18 @@ class Hangman:
 
         letter = letter.lower()
 
-        if letter in self.word:
-            self.time_left += 10   # reward
+        try:
+            if letter not in self.word:
+                raise WrongGuessException()
+
+            self.time_left += 10
             for i in range(len(self.word)):
                 if self.word[i] == letter:
                     self.display[i] = letter
-        else:
+
+        except WrongGuessException:
             self.attempts += 1
-            self.time_left -= 5   # penalty
+            self.time_left -= 5
 
         self.word_label.config(text=" ".join(self.display))
         self.update_hangman()
@@ -255,22 +124,47 @@ class Hangman:
     def update_hangman(self):
         self.hangman_label.config(text=hangman_stages[self.attempts])
 
+    def run_timer(self):
+        if self.time_left > 0:
+            color = "#00ff00" if self.time_left > 60 else "#ffcc00" if self.time_left > 20 else "#ff0000"
+            self.timer_label.config(text=f"Time: {self.time_left}s", fg=color)
+
+            self.time_left -= 1
+            self.timer_job = self.root.after(1000, self.run_timer)
+        else:
+            self.end("Time's Up! ⏰ Word: " + self.word)
+
+    def key_input(self, event):
+        if event.keysym == "Return":
+            self.start_game()
+        elif event.keysym == "Escape":
+            self.main_menu()
+        elif hasattr(self, "keyboard"):
+            letter = event.char.upper()
+            if letter.isalpha():
+                for btn in self.keyboard.winfo_children():
+                    if btn["text"] == letter:
+                        btn.invoke()
+                        break
+
     def end(self, msg):
         if hasattr(self, "timer_job"):
             self.root.after_cancel(self.timer_job)
 
         self.clear()
-        tk.Label(self.root, text=msg, font=("Arial", 20),fg="white", bg="#222831").pack(pady=20)
+        tk.Label(self.root, text=msg, font=("Arial", 20),
+                 fg="white", bg="#222831").pack(pady=20)
 
         tk.Button(self.root, text="Play Again",
-            bg="#00adb5", fg="white",
-            command=self.main_menu).pack()
+                  bg="#00adb5", fg="white",
+                  command=self.main_menu).pack()
 
     def clear(self):
         for widget in self.root.winfo_children():
             widget.destroy()
 
 
-root = tk.Tk()
-Hangman(root)
-root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    HangmanGame(root)
+    root.mainloop()
